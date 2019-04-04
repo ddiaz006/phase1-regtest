@@ -33,12 +33,12 @@ def opts(multi_target=False):
                       help="number of seconds to wait at each setting [default %default]")
     parser.add_option("--minimum",
                       dest="bvMin",
-                      default=0,
+                      default=1,
                       type="int",
                       help="minimum BV setting (V) [default %default]")
     parser.add_option("--maximum",
                       dest="bvMax",
-                      default=70,
+                      default=17,
                       type="int",
                       help="maximum BV setting (V) [default %default]")
     parser.add_option("--step",
@@ -77,7 +77,7 @@ class scanner(driver.driver):
     def split_results(self, cmd):
         res = self.command(cmd)
         fields = res.split("#")
-        
+        #print(fields) 
         if " " in fields[1]:
             res1 = fields[1].split()
         elif type(fields[1]) is not list:
@@ -95,26 +95,73 @@ class scanner(driver.driver):
     def bv_scan(self):
         nCh = 48 if self.he else 64
 
+                     #"PeltierVoltage" in cmd:
+        #filename = "%s_%s.txt" % (self.target, datetime.datetime.today().strftime("%Y_%m_%d_%Hh%M"))
+        filename = open("test.txt", "w")
         d = {}
-        for v in range(self.options.bvMin, self.options.bvMax + self.options.bvStep, self.options.bvStep):
-            if v == 80:
-                v = 79.9
+        p = {}
+        #print >>filename,BVIn  
+        for w in range(self.options.bvMin, self.options.bvMax + self.options.bvStep, self.options.bvStep):
+            v=(w/2.0) -1.0
+            #print("This Is V:  " + str(v))
+	    if v < 0:
+            	BVIn="get %s-BVin_f_rr" % (self.target)
+            	p[(v, BVIn)] = self.split_results(BVIn)[1]
+                out= "BV_In:" + str(self.split_results(BVIn)[1])
+                #print ("TEST    "+out+"        ENDTEST\n")
+		print >>filename, out 
+		print >>filename, "#SetV I_Pel V_Pel MonV_Pel" 
+            else :
+                out3=" "
+                "put %s-biasvoltage[1-%d]_f %d*%f" % (self.target, nCh, nCh, v)
+                SetVPel="put %s-SetPeltierVoltage_f %f" % (self.target, v)
+                SetVPel_1= " " + str(self.split_results(SetVPel)[1])
 
-            for cmd in ["put %s-biasvoltage[1-%d]_f %d*%f" % (self.target, nCh, nCh, v),
-                        "get %s-biasmon[1-%d]_f_rr" % (self.target, nCh),
-                        "get %s-LeakageCurrent[1-%d]_f_rr" % (self.target, nCh),
-                        ]:
-                if "biasmon" in cmd:
-                    time.sleep(self.options.nSeconds)
-                d[(v, cmd)] = self.split_results(cmd)[1]
+                MonVPel="get %s-PeltierVoltageMon_f_rr" % (self.target)
+                MonVPel_1= " " + str(self.split_results(MonVPel)[1])
+                
+                time.sleep(1*self.options.nSeconds)
+                VPel="get %s-PeltierVoltage_f_rr" % (self.target)
+                VPel_1= " " + str(self.split_results(VPel)[1])
+                IPel="get %s-PeltierCurrent_f_rr" % (self.target)
+                IPel_1= " " + str(self.split_results(IPel)[1])
+            	#d[(v, VPel)] = self.split_results(VPel)[0]
+            	#d[(v, MonVPel)] = self.split_results(MonVPel)[0]
+            	#d[(v, IPel)] = self.split_results(IPel)[0]
+           	#for cmd in ["get %s-PeltierVoltageMon_f_rr" % (self.target),
+           	#            "get %s-PeltierCurrent_f_rr" % (self.target),
+           	#            "get %s-PeltierVoltage_f_rr" % (self.target)
+           	#            ]:
+                #   if "PeltierCurrent" in cmd:
+                #     time.sleep(2*self.options.nSeconds)
+                #   #if "PeltierCurrent" in cmd:
+                #   #  IPel=str(self.split_results(cmd)[1]
+                #   #if "PeltierVoltage" in cmd:
+                #   #   print("in inner loop") 
+                #   #  if "Mon" in cmd:
+                #   #     MonVPel=str(self.split_results(cmd)[1]
+                #   #  else :
+                #   #     VPel=str(self.split_results(cmd)[1]
+                #   d[(v, cmd)] = self.split_results(cmd)[1]
+                #print("put HB1-2-SetPeltierVoltage_f   " + str(v))
+                out3=str(v)+" "+str(IPel_1)+str(VPel_1)+str(MonVPel_1)
+                #print (out3)
+                #   out2= str(v)+" "+str(self.split_results(cmd)[0]) + str(self.split_results(cmd)[1])
+                #   out= str(v)+" " + str(self.split_results(cmd)[0]) + str(self.split_results(cmd)[1])
+                #   print ("TEST    "+out+"        ENDTEST\n")
+                print >>filename, out3 
+                raw_input("put HB1-2-SetPeltierVoltage_f   " + str(v)+ ",     Press Enter to continue...")
+        #print("Wrote results to %s" % filename)
+        filename.close()
         return d
+
 
 
     def pickle(self, d):
         filename = "%s_%s.pickle" % (self.target, datetime.datetime.today().strftime("%Y_%m_%d_%Hh%M"))
         with open(filename, "w") as f:
             pickle.dump(d, f)
-        print("Wrote results to %s" % filename)
+        #print("Wrote results to %s" % filename)
 
 
 if __name__ == "__main__":

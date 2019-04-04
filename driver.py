@@ -62,8 +62,9 @@ class driver:
                 host = "hcalngccm03" if self.hb else "hcalngccm02"
                 port = 64400 if self.hb else 64000
             else:  # assume 904
-                host = "hcal904daq04"
-                port = 64400
+                #host = "hcal904daq04"
+                host = "pcheupgrade"
+                port = 64000
         elif self.hf:
             host = "hcalngccm01" if usc else "hcal904daq02"
             port = 63000 if usc else 63700
